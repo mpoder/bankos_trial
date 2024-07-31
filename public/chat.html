@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Overpass:ital,wght@0,100..900;1,100..900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <script src="/socket.io/socket.io.js"></script>
+    <title>Chat</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        font-family: "Inter", sans-serif;
+        font-optical-sizing: auto;
+        font-weight: 400;
+        font-style: normal;
+      }
+
+      .material-symbols-outlined {
+        font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+      }
+
+      .overpass-600 {
+        font-family: "Overpass", sans-serif;
+        font-optical-sizing: auto;
+        font-weight: 600;
+        font-style: normal;
+      }
+
+      body {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr auto;
+        margin: 0;
+        padding: 0;
+      }
+      .chat-window {
+        width: 100%;
+        height: 100%;
+        min-height: 100%;
+      }
+
+      .chat-messages {
+        padding: 16px;
+        height: 100%;
+        overflow-y: auto;
+        display: grid;
+        gap: 16px;
+        width: 100%;
+        grid-auto-rows: auto;
+        align-content: baseline;
+      }
+
+      .input-form {
+        padding: 16px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        box-shadow: 0 -8px 8px 0 rgba(0, 0, 0, 0.1);
+      }
+
+      .input-form > input,
+      .input-form > button {
+        height: 4rem;
+        padding: 0 16px;
+      }
+
+      .input-form > button {
+        display: flex;
+        align-items: center;
+      }
+
+      .message-root {
+        display: grid;
+        background-color: rgb(39, 140, 255);
+        padding: 12px;
+        width: fit-content;
+        border-radius: 12px;
+        grid-template-columns: auto 1fr;
+        grid-template-areas: "sender message";
+        gap: 16px;
+        height: fit-content;
+      }
+
+      .message-root.self {
+        justify-self: flex-end;
+        background-color: rgb(28, 192, 105);
+        grid-template-areas: "message sender";
+      }
+
+      .message-sender {
+        grid-area: sender;
+        display: grid;
+        height: auto;
+        width: 42px;
+        aspect-ratio: 1/1;
+        background-color: white;
+        padding: 6px;
+        border-radius: 50%;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .message-sender > span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        font-size: 24px;
+        font-family: "Overpass", sans-serif;
+        font-optical-sizing: auto;
+        font-weight: 600;
+        font-style: normal;
+      }
+
+      .message-message {
+        grid-area: message;
+        color: white;
+      }
+
+      #loginForm {
+        display: grid;
+        max-width: 420px;
+        margin: auto auto;
+        margin-top: 15%;
+        gap: 12px;
+        padding: 12px;
+        box-shadow: 0 0px 32px 2px rgba(0, 0, 0, 0.4);
+        border-radius: 12px;
+      }
+
+      #loginForm > h1 {
+        background-color: rgb(90, 14, 14);
+        font-size: 1.5em;
+        padding: 0.83em;
+        color: white;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="chat-window" id="content"></section>
+    <form class="input-form" action="" id="chatForm">
+      <textarea name="message" id="message" cols="30" rows="1"></textarea>
+      <button type="submit" id="messageSubmit">
+        <span class="material-symbols-outlined"> send </span>
+      </button>
+    </form>
+  </body>
+
+  <script>
+    const socket = io();
+    let loginToken = localStorage.getItem("chat_jwt");
+    let state = "guest";
+    let currentUserId = null;
+    const chatForm = document.getElementById("chatForm");
+    const content = document.getElementById("content");
+    const textArea = document.getElementById("message");
+    const messageSubmit = document.getElementById("messageSubmit");
+
+    socket.on("auth error", (error) => {
+      console.log("auth error", error);
+      changeState("guest");
+    });
+
+    socket.on("chat message", (event) => {
+      if (!currentUserId) {
+        return;
+      }
+      console.log("chat message");
+      const { message, senderId, senderInitial } = event;
+      const messagesRoot = document.getElementById("messagesRoot");
+      console.log(senderId, currentUserId);
+      messagesRoot.innerHTML += `
+      <div class="message-root ${senderId === currentUserId ? "message-root self" : "message-root"}">
+        <div class="message-sender">
+          <span>${senderInitial}</span>
+        </div>
+        <div class="message-message">${message}</div>
+      </div>
+      `;
+    });
+
+    socket.on("login success", (id) => {
+      console.log(`Login successful - current user ID: ${id}`);
+      currentUserId = id;
+    });
+
+    let loginForm = null;
+
+    const changeState = (newState) => {
+      state = newState;
+      switch (newState) {
+        case "logged_in":
+          content.innerHTML = "";
+          textArea.disabled = false;
+          messageSubmit.disabled = false;
+          socket.emit("login", { token: loginToken });
+          content.innerHTML = `<div class="chat-messages" id="messagesRoot"></div>`;
+          chatForm.addEventListener("submit", sendMessage);
+          break;
+        case "guest": {
+          chatForm.removeEventListener("submit", sendMessage);
+          currentUserId = null;
+          addLoginForm();
+          break;
+        }
+      }
+    };
+
+    const handleLoginAttempt = (event) => {
+      event.preventDefault();
+      const endpoint = "/login";
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
+      fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ userName: username, password })
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.token) {
+            loginToken = data.token;
+            localStorage.setItem("chat_jwt", loginToken);
+            changeState("logged_in");
+            loginForm.removeEventListener("submit", handleLoginAttempt);
+          } else {
+            // TODO: Handle login error
+            document.getElementById("login_error").innerText = data.error;
+          }
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+          document.getElementById("login_error").innerText = error;
+          // TODO: Handle network error
+        });
+
+      console.log("Attempting to log in");
+    };
+
+    const sendMessage = (event) => {
+      event.preventDefault();
+
+      const message = textArea.value;
+      if (message) {
+        console.log("sending message");
+        socket.emit("chat message", { message, token: loginToken });
+        textArea.value = "";
+      }
+    };
+
+    const addLoginForm = () => {
+      content.innerHTML = `
+      <form action="" id="loginForm">
+        <h1>You are not logged in.</h1>
+        <input type="text" name="username" id="username" placeholder="Username" required>
+        <input type="password" name="password" id="password" placeholder="Password" required>
+        <span id="login_error"></span>
+        <button type="submit">Sign In</button>
+      </form>
+      `;
+      loginForm = document.getElementById("loginForm");
+      loginForm.addEventListener("submit", handleLoginAttempt);
+      textArea.disabled = true;
+      messageSubmit.disabled = true;
+    };
+
+    if (loginToken) {
+      console.log("Login token found");
+      changeState("logged_in");
+    } else {
+      console.log("Login token not found");
+      addLoginForm();
+    }
+  </script>
+</html>
