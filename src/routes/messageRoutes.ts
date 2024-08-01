@@ -6,7 +6,7 @@ import Message from "../models/Message";
 const addMessageRoutes = (app: express.Application) => {
   app.get("/messages", authenticateToken, async (request, response) => {
     try {
-      const messages = await Message.find().populate("sender");
+      const messages = await Message.find().populate("sender").sort({ timestamp: 1 });
       response.status(200).json(messages);
     } catch (error) {
       console.log(error);
