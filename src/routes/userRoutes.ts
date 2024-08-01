@@ -7,7 +7,7 @@ import { authenticateToken } from "../middleware/auth";
 import type { OnlineStatus } from "../models/OnlineStatus";
 
 const addUserRoutes = (app: express.Application, userPresence: Map<string, OnlineStatus>): void => {
-  const JWT_SECRET = process.env.JWT_SECRET || "secret";
+  const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
   app.get("/users", async (request, response) => {
     try {
       const users = await User.find();

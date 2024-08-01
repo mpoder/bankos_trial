@@ -21,7 +21,7 @@ const LOGGED_IN_ROOM = "loggedIn";
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
 const serverPort = 3000;
 

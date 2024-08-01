@@ -57,3 +57,11 @@ The project also uses a _.env_ file. This file is _not_ commited to the reposito
 - MONGODB_APP_NAME - The name of the application in MongoDB
 - MONGODB_DB_NAME - The name of the specific database to connect to in MongoDB
 - JWT_SECRET - The secret key used for signing and verifying JSON Web Tokens (JWTs) for authentication
+
+## Running
+
+After adding correct information to the _.env_ file, you can start the server by running the following command:
+
+```bash
+npm start
+```
